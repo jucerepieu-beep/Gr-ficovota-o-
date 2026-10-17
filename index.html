@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pesquisas Eleitorais 2026 — Dados Oficiais do TSE</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/fontsource/css/inter@latest/index.css" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #0a0e1a;
+            color: #e0e6f0;
+            min-height: 100vh;
+        }
+        .container { max-width: 1440px; margin: 0 auto; padding: 24px; }
+        
+        header {
+            text-align: center; padding: 30px 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            margin-bottom: 24px;
+        }
+        header h1 {
+            font-size: 2rem; font-weight: 800;
+            background: linear-gradient(135deg, #e0e6f0, #94a3b8);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            letter-spacing: -0.5px;
+        }
+        header .subtitle {
+            color: #64748b; font-size: 0.9rem; margin-top: 6px;
+        }
+        .source-badge {
+            display: inline-flex; align-items: center; gap: 8px;
+            background: rgba(34, 197, 94, 0.15); border: 1px solid rgba(34, 197, 94, 0.3);
+            padding: 6px 16px; border-radius: 20px; margin-top: 12px;
+            font-size: 0.8rem; font-weight: 600; color: #22c55e;
+        }
+        .source-badge .dot {
+            width: 8px; height: 8px; background: #22c55e; border-radius: 50%;
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .status-bar {
+            background: rgba(30, 41, 59, 0.6);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 12px; padding: 14px 20px;
+            margin-bottom: 24px;
+            display: flex; justify-content: space-between; align-items: center;
+            flex-wrap: wrap; gap: 12px;
+            font-size: 0.85rem;
+        }
+        .status-bar .status {
+            display: flex; align-items: center; gap: 8px;
+        }
+        .status-dot {
+            width: 10px; height: 10px; border-radius: 50%;
+        }
+        .status-dot.ok { background: #22c55e; box-shadow: 0 0 8px #22c55e; }
+        .status-dot.error { background: #ef4444; box-shadow: 0 0 8px #ef4444; }
+        .status-dot.loading { background: #eab308; box-shadow: 0 0 8px #eab308; animation: pulse 1s infinite; }
+        .status-bar .meta { color: #64748b; font-size: 0.75rem; }
+        .status-bar .meta strong { color: #94a3b8; }
+
+        .metrics-row {
+            display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;
+            margin-bottom: 24px;
+        }
+        .metric-card {
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.9));
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 16px; padding: 20px;
+        }
+        .metric-card .label {
+            font-size: 0.72rem; color: #64748b;
+            text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;
+        }
+        .metric-card .value {
+            font-size: 2.2rem; font-weight: 800; margin: 8px 0 4px;
+        }
+        .metric-card .sub {
+            font-size: 0.75rem; color: #64748b;
+        }
+        .metric-card.lula .value { color: #ef4444; }
+        .metric-card.flavio .value { color: #eab308; }
+        .metric-card.brancos .value { color: #64748b; }
+        .metric-card.indecisos .value { color: #8b5cf6; }
+
+        .charts-grid {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
+            margin-bottom: 24px;
+        }
+        .chart-card {
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.7), rgba(15, 23, 42, 0.8));
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 16px; padding: 24px;
+        }
+        .chart-card.full-width { grid-column: 1 / -1; }
+        .chart-card h3 {
+            font-size: 1rem; font-weight: 700; margin-bottom: 4px; color: #e2e8f0;
+        }
+        .chart-card .chart-subtitle {
+            font-size: 0.75rem; color: #64748b; margin-bottom: 16px;
+        }
+        .chart-container { position: relative; width: 100%; }
+        .chart-container.h320 { height: 320px; }
+        .chart-container.h380 { height: 380px; }
+
+        .surveys-list {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+            gap: 16px; margin-bottom: 24px;
+        }
+        .survey-card {
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.9));
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 14px; padding: 18px;
+            transition: transform 0.2s;
+        }
+        .survey-card:hover { transform: translateY(-2px); border-color: rgba(255,255,255,0.15); }
+        .survey-header {
+            display: flex; justify-content: space-between; align-items: flex-start;
+            margin-bottom: 14px; padding-bottom: 12px;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+        .survey-institute {
+            font-size: 1.1rem; font-weight: 800; color: #e2e8f0;
+        }
+        .survey-date {
+            font-size: 0.72rem; color: #64748b; margin-top: 2px;
+        }
+        .survey-registration {
+            font-size: 0.65rem; color: #475569;
+            background: rgba(255,255,255,0.04);
+            padding: 3px 8px; border-radius: 6px;
+            font-family: monospace;
+        }
+        .survey-bars { display: flex; flex-direction: column; gap: 10px; }
+        .survey-bar-row {
+            display: grid; grid-template-columns: 90px 1fr 50px;
+            align-items: center; gap: 10px;
+        }
+        .survey-bar-label { font-size: 0.78rem; color: #cbd5e1; font-weight: 600; }
+        .survey-bar-track {
+            height: 22px; background: rgba(255,255,255,0.04);
+            border-radius: 6px; overflow: hidden; position: relative;
+        }
+        .survey-bar-fill {
+            height: 100%; border-radius: 6px;
+            display: flex; align-items: center; padding-left: 8px;
+            font-size: 0.7rem; font-weight: 700; color: white;
+            transition: width 0.8s ease;
+        }
+        .survey-bar-fill.lula { background: linear-gradient(90deg, #dc2626, #ef4444); }
+        .survey-bar-fill.flavio { background: linear-gradient(90deg, #ca8a04, #eab308); color: #1a1a1a; }
+        .survey-bar-fill.brancos { background: linear-gradient(90deg, #334155, #475569); }
+        .survey-bar-fill.indecisos { background: linear-gradient(90deg, #6d28d9, #8b5cf6); }
+        .survey-bar-value { font-size: 0.85rem; font-weight: 800; text-align: right; }
+        .survey-bar-value.lula { color: #ef4444; }
+        .survey-bar-value.flavio { color: #eab308; }
+        .survey-bar-value.brancos { color: #64748b; }
+        .survey-bar-value.indecisos { color: #8b5cf6; }
+
+        .survey-footer {
+            display: flex; justify-content: space-between;
+            margin-top: 14px; padding-top: 12px;
+            border-top: 1px solid rgba(255,255,255,0.06);
+            font-size: 0.7rem; color: #64748b;
+        }
+        .survey-footer span { display: flex; align-items: center; gap: 4px; }
+
+        .alert-box {
+            background: rgba(234, 179, 8, 0.08);
+            border: 1px solid rgba(234, 179, 8, 0.25);
+            border-radius: 12px; padding: 16px 20px;
+            margin-bottom: 24px;
+            font-size: 0.85rem; color: #fde68a;
+            line-height: 1.6;
+        }
+        .alert-box.error {
+            background: rgba(239, 68, 68, 0.08);
+            border-color: rgba(239, 68, 68, 0.25);
+            color: #fecaca;
+        }
+        .alert-box strong { color: #fff; }
+
+        .disclaimer {
+            text-align: center; padding: 20px;
+            color: #475569; font-size: 0.72rem; line-height: 1.7;
+            border-top: 1px solid rgba(255,255,255,0.04);
+            margin-top: 20px;
+        }
+        .disclaimer a { color: #60a5fa; text-decoration: none; }
+
+        .empty-state {
+            text-align: center; padding: 60px 20px;
+            color: #64748b;
+        }
+        .empty-state .icon { font-size: 3rem; margin-bottom: 12px; }
+
+        @media (max-width: 1024px) {
+            .metrics-row { grid-template-columns: repeat(2, 1fr); }
+            .charts-grid { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 640px) {
+            .metrics-row { grid-template-columns: 1fr; }
+            header h1 { font-size: 1.4rem; }
+            .container { padding: 12px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📊 Pesquisas Eleitorais 2026</h1>
+            <p class="subtitle">2º Turno — Presidente do Brasil</p>
+            <div class="source-badge">
+                <span class="dot"></span>
+                Fonte: API oficial do TSE — Pesquisas Registradas
+            </div>
+        </header>
+
+        <div class="status-bar">
+            <div class="status">
+                <span class="status-dot loading" id="statusDot"></span>
+                <span id="statusText">Conectando à API do TSE...</span>
+            </div>
+            <div class="meta">
+                Última consulta: <strong id="lastFetch">—</strong> · 
+                Pesquisas carregadas: <strong id="surveyCount">0</strong>
+            </div>
+        </div>
+
+        <div id="alertContainer"></div>
+
+        <div class="metrics-row" id="metricsRow">
+            <div class="metric-card lula">
+                <div class="label">Lula (PT) — Média</div>
+                <div class="value" id="avgLula">—</div>
+                <div class="sub" id="subLula">Aguardando dados...</div>
+            </div>
+            <div class="metric-card flavio">
+                <div class="label">Flávio Bolsonaro (PL) — Média</div>
+                <div class="value" id="avgFlavio">—</div>
+                <div class="sub" id="subFlavio">Aguardando dados...</div>
+            </div>
+            <div class="metric-card brancos">
+                <div class="label">Brancos / Nulos — Média</div>
+                <div class="value" id="avgBrancos">—</div>
+                <div class="sub" id="subBrancos">Aguardando dados...</div>
+            </div>
+            <div class="metric-card indecisos">
+                <div class="label">Não sabe / Não respondeu</div>
+                <div class="value" id="avgIndecisos">—</div>
+                <div class="sub" id="subIndecisos">Aguardando dados...</div>
+            </div>
+        </div>
+
+        <div class="charts-grid">
+            <div class="chart-card">
+                <h3>Comparativo entre Institutos</h3>
+                <p class="chart-subtitle">Intenção de votos por instituto de pesquisa</p>
+                <div class="chart-container h380">
+                    <canvas id="institutesChart"></canvas>
+                </div>
+            </div>
+            <div class="chart-card">
+                <h3>Evolução Temporal</h3>
+                <p class="chart-subtitle">Pesquisas ordenadas por data de divulgação</p>
+                <div class="chart-container h380">
+                    <canvas id="timelineChart"></canvas>
+                </div>
+            </div>
+            <div class="chart-card full-width">
+                <h3>Margem de Erro das Pesquisas</h3>
+                <p class="chart-subtitle">Intervalo de confiança de cada pesquisa registrada</p>
+                <div class="chart-container h320">
+                    <canvas id="marginChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <h2 style="font-size:1.3rem; font-weight:800; margin-bottom:16px; color:#e2e8f0;">
+            📋 Pesquisas Registradas no TSE
+        </h2>
+        <div id="surveysContainer">
+            <div class="empty-state">
+                <div class="icon">⏳</div>
+                <p>Carregando pesquisas oficiais...</p>
+            </div>
+        </div>
+
+        <div class="disclaimer">
+            <strong>Dados 100% oficiais</strong> — consumidos diretamente da API pública do TSE<br>
+            <a href="https://www.tse.jus.br/eleicoes/estatisticas/estatisticas-eleitorais" target="_blank">
+                Portal de Estatísticas do TSE
+            </a> · 
+            Nenhum número é inventado. Se não houver dados, o app avisa explicitamente.<br>
+            Para funcionar, esta página precisa conseguir fazer requisições à API do TSE. 
+            Se houver bloqueio de CORS, pode ser necessário um proxy ou backend intermediário.
+        </div>
+    </div>
+
+    <script>
+        // ============================================================
+        // CONFIGURAÇÃO DA API DO TSE
+        // ============================================================
+        // A API pública do TSE para pesquisas eleitorais:
+        // Documentação: https://www.tse.jus.br/eleicoes/estatisticas/estatisticas-eleitorais
+        // 
+        // IMPORTANTE: O código abaixo tenta múltiplos endpoints conhecidos.
+        // Se nenhum funcionar (ex: bloqueio CORS), o app exibe mensagem clara.
+        // ============================================================
+
+        const TSE_CONFIG = {
+            // ID da eleição 2026 (pode precisar de ajuste se o TSE usar outro código)
+            // Eleições anteriores: 2022=546, 2020=545, etc.
+            idEleicao: 716, // Valor estimado para 2026 — ajuste se necessário
+            cargo: 1,       // 1 = Presidente
+            uf: 'BR',       // Brasil inteiro
+            turno: 2,       // 2º turno
+            // Proxies CORS públicos (fallback caso a API do TSE bloqueie)
+            corsProxies: [
+                'https://corsproxy.io/?',
+                'https://api.allorigins.win/raw?url=',
+                'https://cors-anywhere.herokuapp.com/'
+            ]
+        };
+
+        // Endpoints conhecidos da API do TSE
+        const TSE_ENDPOINTS = [
+            `https://divulgacandcontas.tse.jus.br/divulga/rest/v/pesquisa/pesquisas/${TSE_CONFIG.idEleicao}/${TSE_CONFIG.cargo}/2/${TSE_CONFIG.uf}`,
+            `https://divulgacandcontas.tse.jus.br/divulga/rest/v/pesquisa/buscar/${TSE_CONFIG.idEleicao}/${TSE_CONFIG.cargo}/2/${TSE_CONFIG.uf}/1`,
+            `https://apisce.tse.jus.br/pesquisas?eleicao=${TSE_CONFIG.idEleicao}&cargo=${TSE_CONFIG.cargo}`
+        ];
+
+        // ============================================================
+        // ESTADO DA APLICAÇÃO
+        // ============================================================
+        let surveys = [];
+        let institutesChart, timelineChart, marginChart;
+
+        // ============================================================
+        // INICIALIZAÇÃO DOS GRÁFICOS
+        // ============================================================
+        Chart.defaults.color = '#94a3b8';
+        Chart.defaults.borderColor = 'rgba(255,255,255,0.05)';
+        Chart.defaults.font.family = 'Inter';
+
+        institutesChart = new Chart(document.getElementById('institutesChart').getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: [],
+                datasets: [
+                    { label: 'Lula (PT)', data: [], backgroundColor: 'rgba(239, 68, 68, 0.75)', borderColor: '#ef4444', borderWidth: 1, borderRadius: 4 },
+                    { label: 'Flávio Bolsonaro (PL)', data: [], backgroundColor: 'rgba(234, 179, 8, 0.75)', borderColor: '#eab308', borderWidth: 1, borderRadius: 4 },
+                    { label: 'Brancos/Nulos', data: [], backgroundColor: 'rgba(100, 116, 139, 0.6)', borderRadius: 4 },
+                    { label: 'NS/NR', data: [], backgroundColor: 'rgba(139, 92, 246, 0.6)', borderRadius: 4 }
+                ]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                scales: {
+                    y: { min: 0, max: 70, ticks: { callback: v => v + '%', font: { size: 10 } } },
+                    x: { ticks: { font: { size: 10, weight: '600' } } }
+                },
+                plugins: {
+                    legend: { labels: { usePointStyle: true, pointStyleWidth: 10, font: { size: 11, weight: '600' } } },
+                    tooltip: { callbacks: { label: (ctx) => ` ${ctx.dataset.label}: ${ctx.parsed.y.toFixed(1)}%` } }
+                }
+            }
+        });
+
+        timelineChart = new Chart(document.getElementById('timelineChart').getContext('2d'), {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [
+                    { label: 'Lula', data: [], borderColor: '#ef4444', backgroundColor: 'rgba(239, 68, 68, 0.1)', fill: true, tension: 0.3, pointRadius: 4, pointHoverRadius: 6, borderWidth: 2.5 },
+                    { label: 'Flávio Bolsonaro', data: [], borderColor: '#eab308', backgroundColor: 'rgba(234, 179, 8, 0.1)', fill: true, tension: 0.3, pointRadius: 4, pointHoverRadius: 6, borderWidth: 2.5 }
+                ]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                scales: {
+                    y: { min: 0, max: 70, ticks: { callback: v => v + '%', font: { size: 10 } } },
+                    x: { ticks: { font: { size: 9 }, maxRotation: 45 } }
+                },
+                plugins: {
+                    legend: { labels: { usePointStyle: true, pointStyleWidth: 10, font: { size: 11, weight: '600' } } },
+                    tooltip: {
+                        callbacks: {
+                            label: (ctx) => ` ${ctx.dataset.label}: ${ctx.parsed.y.toFixed(1)}%`,
+                            afterLabel: (ctx) => {
+                                const s = surveys[ctx.dataIndex];
+                                if (!s) return '';
+                                return `Instituto: ${s.institute}\nMargem: ±${s.margin}%\nEntrevistados: ${s.sampleSize}`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        marginChart = new Chart(document.getElementById('marginChart').getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: [],
+                datasets: [
+                    { label: 'Lula (margem ±%)', data: [], backgroundColor: 'rgba(239, 68, 68, 0.5)', borderColor: '#ef4444', borderWidth: 1, borderRadius: 4 },
+                    { label: 'Flávio Bolsonaro (margem ±%)', data: [], backgroundColor: 'rgba(234, 179, 8, 0.5)', borderColor: '#eab308', borderWidth: 1, borderRadius: 4 }
+                ]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                indexAxis: 'y',
+                scales: {
+                    x: { ticks: { callback: v => '±' + v + '%', font: { size: 10 } } },
+                    y: { ticks: { font: { size: 10, weight: '600' } } }
+                },
+                plugins: {
+                    legend: { labels: { usePointStyle: true, pointStyleWidth: 10, font: { size: 11, weight: '600' } } },
+                    tooltip: { callbacks: { label: (ctx) => ` ${ctx.dataset.label}: ±${ctx.parsed.x}%` } }
+                }
+            }
+        });
+
+        // ============================================================
+        // FUNÇÕES DE BUSCA E PROCESSAMENTO
+        // ============================================================
+        function setStatus(type, text) {
+            const dot = document.getElementById('statusDot');
+            const txt = document.getElementById('statusText');
+            dot.className = 'status-dot ' + type;
+            txt.textContent = text;
+        }
+
+        function showAlert(message, isError = false) {
+            const container = document.getElementById('ale
